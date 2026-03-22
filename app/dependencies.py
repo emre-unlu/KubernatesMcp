@@ -14,7 +14,7 @@ from services.trace_service import TraceService
 from clients.base_k8s_client import BaseK8sClient
 from services.logs_service import LogsService
 from services.shell_service import ShellService
-
+from services.system_service import SystemService
 
 @lru_cache(maxsize=1)
 def get_prometheus_client() -> PrometheusClient:
@@ -109,4 +109,28 @@ def get_logs_service() -> LogsService:
 def get_shell_service() -> ShellService:
     return ShellService(
         shell_client=get_shell_client(),
+    )
+
+@lru_cache(maxsize=1)
+def get_system_service() -> SystemService:
+    try:
+        prometheus_client = get_prometheus_client()
+    except Exception:
+        prometheus_client = None
+
+    try:
+        jaeger_client = get_jaeger_client()
+    except Exception:
+        jaeger_client = None
+
+    try:
+        neo4j_client = get_neo4j_client()
+    except Exception:
+        neo4j_client = None
+
+    return SystemService(
+        k8s_client=get_k8s_client(),
+        prometheus_client=prometheus_client,
+        jaeger_client=jaeger_client,
+        neo4j_client=neo4j_client,
     )

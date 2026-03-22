@@ -78,6 +78,21 @@ class JaegerClient:
             raise RuntimeError("Unexpected Jaeger response format: expected JSON object")
 
         return data
+    
+    def is_available(self) -> bool:
+        candidates = [
+            f"{self.jaeger_url}/api/services",
+        ]
+
+        for url in candidates:
+            try:
+                response = requests.get(url, timeout=min(self.timeout_seconds, 5))
+                if response.status_code == 200:
+                    return True
+            except requests.RequestException:
+                continue
+
+        return False
 
     @staticmethod
     def extract_trace_list(response_data: Dict[str, Any]) -> list[Dict[str, Any]]:

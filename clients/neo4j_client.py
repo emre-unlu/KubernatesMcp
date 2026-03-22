@@ -52,7 +52,7 @@ class Neo4jClient:
                 )
                 self._driver.verify_connectivity()
             except Exception as exc:
-                logger.exception("Failed to initialize Neo4j driver")
+                logger.debug("Failed to initialize Neo4j driver: %s", exc)
                 raise RuntimeError(f"Failed to connect to Neo4j: {exc}") from exc
 
         return self._driver
@@ -81,10 +81,10 @@ class Neo4jClient:
                     result = session.run(query, parameters)
                     return [record.data() for record in result]
         except Neo4jError as exc:
-            logger.exception("Neo4j query failed")
+            logger.debug("Neo4j query failed: %s", exc)
             raise RuntimeError(f"Neo4j query failed: {exc}") from exc
         except Exception as exc:
-            logger.exception("Unexpected Neo4j query error")
+            logger.debug("Unexpected Neo4j query error: %s", exc)
             raise RuntimeError(f"Unexpected Neo4j query error: {exc}") from exc
 
     def get_dependencies(self, service_name: str) -> Dict[str, Any]:

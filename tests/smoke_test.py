@@ -1,73 +1,131 @@
+from __future__ import annotations
+
 from app.dependencies import (
-    get_k8s_client,
     get_logs_service,
     get_metrics_service,
     get_shell_service,
+    get_system_service,
     get_topology_service,
 )
-from tools import logs, metrics
-
-def main():
-    print("=== topology ===")
-    topo = get_topology_service()
-    print(topo.get_cluster_overview())
-
-    print("=== shell policy ===")
-    shell = get_shell_service()
-    print(shell.get_shell_policy())
-
-    print("=== kubectl ===")
-    print(shell.exec_kubectl("kubectl get pods"))
-
-    print("=== pods ===")
-    print(get_shell_service().exec_kubectl("kubectl get pods -A"))
-
-    print("=== get svc ===")
-    print(get_shell_service().exec_kubectl("kubectl get svc -A"))
-
-    print("=== topology ===")
-    topo = get_topology_service()
-    print(topo.get_cluster_overview(namespace="kube-system"))
-    print(topo.get_cluster_overview(namespace="local-path-storage"))
 
 
-    print("=== logs ===")
-    logs = get_logs_service()
+def print_section(title: str) -> None:
+    print(f"\n=== {title} ===")
 
-    print(logs.get_pod_logs(
+
+def print_backend_status() -> None:
+    system_service = get_system_service()
+    status = system_service.get_backend_status()
+
+    for name, info in status.items():
+        available = info.get("available", False)
+        configured = info.get("configured", True)
+        marker = "OK" if available else "DOWN"
+        error = info.get("error")
+        url = info.get("url")
+        extra = []
+
+        if url:
+            extra.append(f"url={url}")
+        if "namespace" in info:
+            extra.append(f"namespace={info['namespace']}")
+        if "pod_count" in info:
+            extra.append(f"pods={info['pod_count']}")
+        if "service_count" in info:
+            extra.append(f"services={info['service_count']}")
+        if error:
+           extra.append(f"error={error}")
+
+        print(f"{name:12} | status={marker} | configured={configured} | " + " | ".join(extra))
+
+
+def print_topology_summary() -> None:
+    topology_service = get_topology_service()
+
+    overview = topology_service.get_cluster_overview(namespace="kube-system")
+    print(
+        f"namespace={overview['namespace']} "
+        f"pods={overview['pod_count']} services={overview['service_count']}"
+    )
+
+    mapping = topology_service.get_pods_from_service("kube-dns", namespace="kube-system")
+    pod_names = [pod["pod_name"] for pod in mapping.get("pods", [])]
+    print(f"service kube-dns -> pods: {pod_names}")
+
+    reverse = topology_service.get_services_from_pod(
+        "coredns-7d764666f9-q5rkz",
+        namespace="kube-system",
+    )
+    service_names = [svc["service_name"] for svc in reverse.get("services", [])]
+    print(f"pod coredns-7d764666f9-q5rkz -> services: {service_names}")
+
+
+def print_logs_summary() -> None:
+    logs_service = get_logs_service()
+
+    pod_logs = logs_service.get_pod_logs(
         "coredns-7d764666f9-q5rkz",
         namespace="kube-system",
         important_only=False,
-    ))
+    )
+    print(f"pod log lines: {pod_logs.get('line_count', 0)}")
+    print(f"first 3 lines: {pod_logs.get('lines', [])[:3]}")
 
-    print(logs.summarize_service_logs(
+    service_logs = logs_service.summarize_service_logs(
         "kube-dns",
         namespace="kube-system",
-    ))
+    )
+    print(f"service logs summary: {service_logs.get('summary', {})}")
 
 
-    print("URL URL URL")
-    from app.config import get_settings
-    print(get_settings().prometheus_url)
+def print_metrics_summary() -> None:
+    metrics_service = get_metrics_service()
 
-    print("=== metrics ===")
-    metrics = get_metrics_service()
-
-    print(metrics.get_pod_metrics(
+    pod_metrics = metrics_service.get_pod_metrics(
         "coredns-7d764666f9-q5rkz",
         namespace="kube-system",
-    ))
+    )
+    print(f"pod metrics: {pod_metrics.get('metrics', {})}")
 
-    print(metrics.get_service_metrics(
+    service_metrics = metrics_service.get_service_metrics(
         "kube-dns",
         namespace="kube-system",
-    ))
+    )
+    print(f"aggregated service metrics: {service_metrics.get('aggregated_metrics', {})}")
 
-    print("=== topology ===")
-    topo = get_topology_service()
-    print(topo.get_pods_from_service("kube-dns", namespace="kube-system"))
-    print(topo.get_services_from_pod("coredns-7d764666f9-q5rkz", namespace="kube-system"))
 
+def print_shell_summary() -> None:
+    shell_service = get_shell_service()
+
+    policy = shell_service.get_shell_policy()
+    print(
+        f"shell timeout={policy['timeout_seconds']} "
+        f"allowed={policy['allowed_prefixes']}"
+    )
+
+    result = shell_service.exec_kubectl("kubectl get pods -n kube-system")
+    print(
+        f"kubectl success={result.get('success')} "
+        f"exit_code={result.get('exit_code')} "
+        f"stdout_lines={result.get('summary', {}).get('stdout_line_count')}"
+    )
+
+
+def main() -> None:
+    print_section("backend status")
+    print_backend_status()
+
+    print_section("topology")
+    print_topology_summary()
+
+    print_section("logs")
+    print_logs_summary()
+
+    print_section("metrics")
+    print_metrics_summary()
+
+    print_section("shell")
+    print_shell_summary()
 
 
 if __name__ == "__main__":

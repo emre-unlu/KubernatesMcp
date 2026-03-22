@@ -77,6 +77,23 @@ class PrometheusClient:
 
         self._validate_success_response(data)
         return data
+    
+    def is_available(self) -> bool:
+        """Return True if Prometheus is reachable."""
+        candidates = [
+            f"{self.prometheus_url}/-/ready",
+            f"{self.prometheus_url}/api/v1/status/config",
+        ]
+
+        for url in candidates:
+            try:
+                response = requests.get(url, timeout=min(self.timeout_seconds, 5))
+                if response.status_code == 200:
+                    return True
+            except requests.RequestException:
+                continue
+
+        return False
 
     @staticmethod
     def extract_results(response_data: Dict[str, Any]) -> List[Dict[str, Any]]:
