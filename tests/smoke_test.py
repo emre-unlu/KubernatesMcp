@@ -6,6 +6,7 @@ from app.dependencies import (
     get_shell_service,
     get_system_service,
     get_topology_service,
+    get_trace_service,
 )
 
 
@@ -59,6 +60,11 @@ def print_topology_summary() -> None:
     service_names = [svc["service_name"] for svc in reverse.get("services", [])]
     print(f"pod coredns-7d764666f9-q5rkz -> services: {service_names}")
 
+    print("=== Service dependencies for 'frontend' ===")
+
+    print(topology_service.get_service_dependencies("frontend"))
+    print(topology_service.get_service_map("frontend", depth=2))
+
 
 def print_logs_summary() -> None:
     logs_service = get_logs_service()
@@ -110,6 +116,14 @@ def print_shell_summary() -> None:
         f"stdout_lines={result.get('summary', {}).get('stdout_line_count')}"
     )
 
+def print_trace_summary() -> None:
+    trace_service = get_trace_service()
+
+    print("=== Trace summaries for 'frontend' ===")
+
+    trace_service = get_trace_service()
+    print(trace_service.get_trace_summaries("jaeger-all-in-one"))
+
 
 def main() -> None:
     print_section("backend status")
@@ -126,6 +140,9 @@ def main() -> None:
 
     print_section("shell")
     print_shell_summary()
+
+    print_section("traces")
+    print_trace_summary()
 
 
 if __name__ == "__main__":

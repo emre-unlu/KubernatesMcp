@@ -1,5 +1,0 @@
-app
-clients
-main
-services
-tools
