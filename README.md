@@ -20,21 +20,21 @@ It is designed so an MCP client or agent can query cluster topology, logs, metri
 ### 1. Install dependencies
 
 From the project root:
-
+```
 poetry install
-
+```
 ### 2. Create your environment file
 
 Copy the template:
-
+```
 cp .env.example .env
-
+```
 On Windows PowerShell:
-
+```
 Copy-Item .env.example .env
-
+```
 Then fill in the values you need in .env, for example:
-
+```
 K8S_NAMESPACE=default
 PROMETHEUS_URL=http://localhost:9090
 JAEGER_URL=http://localhost:16686
@@ -42,19 +42,19 @@ NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=yourpassword
 NEO4J_DATABASE=neo4j
-
+```
 ### 3. Start the MCP server
-
+```
 poetry run python main.py
-
+```
 If you added the Poetry script entry, you can also run:
-
+```
 poetry run kubernetes-mcp
-
+```
 ### 4. Run the smoke test
-
+```
 poetry run python -m tests.smoke_test
-
+```
 This checks:
 - backend availability
 - Kubernetes topology
@@ -66,33 +66,33 @@ This checks:
 ### 5. Optional local backends
 
 Start Jaeger locally:
-
+```
 docker run --rm --name jaeger \
   -e COLLECTOR_OTLP_ENABLED=true \
   -p 16686:16686 \
   -p 4317:4317 \
   -p 4318:4318 \
   jaegertracing/all-in-one:latest
-
+```
 Start Neo4j locally:
-
+```
 docker run --rm --name neo4j \
   -p 7474:7474 \
   -p 7687:7687 \
   -e NEO4J_AUTH=neo4j/testpassword123 \
   neo4j:latest
-
+```
 Then set in .env:
-
+```
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=testpassword123
 NEO4J_DATABASE=neo4j
-
+```
 Prometheus must be reachable at the URL configured in .env, for example:
-
+```
 PROMETHEUS_URL=http://localhost:9090
-
+```
 If Prometheus is running inside your cluster, you can expose it with kubectl port-forward.
 
 
