@@ -134,7 +134,7 @@ If Prometheus is running inside your cluster, you can expose it with kubectl por
 ---
 
 ## Project structure
-
+```text
 Kubernetes-Mcp/
 ├── app/
 │   ├── __init__.py
